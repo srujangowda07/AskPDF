@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
 
-const Typewriter = ({ text, speed = 15 }) => {
+if (!API_URL) {
+  console.error("API URL is not defined. Check VITE_API_URL.");
+}
+console.log("API_URL:", API_URL);
+
+const Typewriter = ({ text, speed = 15, onTyping }) => {
   const [displayedText, setDisplayedText] = useState('')
   
   useEffect(() => {
@@ -17,6 +22,10 @@ const Typewriter = ({ text, speed = 15 }) => {
     }, speed)
     return () => clearInterval(timer)
   }, [text, speed])
+
+  useEffect(() => {
+    if (onTyping) onTyping()
+  }, [displayedText])
   
   return <>{displayedText.split('\n').map((line, j) => <span key={j}>{line}<br/></span>)}</>
 }
@@ -51,16 +60,27 @@ function App() {
     }
 
     setIsUploading(true)
+    if (!API_URL) {
+      alert("Backend URL not configured. Check environment variables.");
+      setIsUploading(false)
+      return
+    }
+
     const formData = new FormData()
     formData.append('file', uploadedFile)
 
     try {
+      console.log("Uploading to:", `${API_URL}/upload`);
       const response = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         body: formData
       })
 
-      if (!response.ok) throw new Error('Upload failed')
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Upload error:", text);
+        throw new Error(`Upload failed: ${response.status}`);
+      }
 
       const data = await response.json()
       setFile(data.filename)
@@ -80,6 +100,11 @@ function App() {
   const handleAsk = async (e) => {
     e.preventDefault()
     if (!input.trim() || isAsking) return
+    
+    if (!API_URL) {
+      alert("Backend URL not configured. Check environment variables.");
+      return;
+    }
 
     const question = input.trim()
     setInput('')
@@ -125,6 +150,10 @@ function App() {
   }
 
   const resetSession = async () => {
+    if (!API_URL) {
+      alert("Backend URL not configured. Check environment variables.");
+      return;
+    }
     try {
       await fetch(`${API_URL}/reset`, { method: 'POST' })
       setFile(null)
@@ -200,7 +229,7 @@ function App() {
               {msg.refused && <div className="refusal-label">Out of scope</div>}
               <div className="bubble">
                 {msg.isNew ? (
-                  <Typewriter text={msg.content} speed={15} />
+                  <Typewriter text={msg.content} speed={15} onTyping={scrollToBottom} />
                 ) : (
                   msg.content.split('\n').map((line, j) => (
                     <span key={j}>{line}<br/></span>
