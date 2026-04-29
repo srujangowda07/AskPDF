@@ -100,7 +100,6 @@ function App() {
 
       const data = await response.json()
       setMessages(prev => {
-        // Remove 'isNew' flag from previous messages so they don't re-type if react re-renders
         const updated = prev.map(m => ({ ...m, isNew: false }))
         return [...updated, { 
           role: 'assistant', 
@@ -140,7 +139,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="brand">
           <h1>AskPDF</h1>
@@ -195,12 +193,11 @@ function App() {
         </div>
       </aside>
 
-      {/* Main Chat Area */}
       <main className="chat-container">
         <div className="chat-messages">
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.role} ${msg.refused ? 'refused' : ''}`}>
-              {msg.refused && <div className="refusal-label">⚠ Out of scope</div>}
+              {msg.refused && <div className="refusal-label">Out of scope</div>}
               <div className="bubble">
                 {msg.isNew ? (
                   <Typewriter text={msg.content} speed={15} />

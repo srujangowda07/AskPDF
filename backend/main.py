@@ -10,7 +10,6 @@ import re
 
 app = FastAPI()
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global instances
 rag = RAGPipeline()
 groq = GroqClient()
 
@@ -32,7 +30,6 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
     
-    # Save file temporarily with sanitized name
     filename = os.path.basename(file.filename)
     temp_path = f"temp_{filename}"
     
@@ -56,7 +53,6 @@ async def upload_pdf(file: UploadFile = File(...)):
 async def ask_question(request: AskRequest):
     try:
         print(f"User query: {request.question}")
-        # Query rewriting
         user_query = request.question.strip().lower()
         if user_query in ["summarize", "summarize it", "summary"]:
             query_to_use = "Provide a structured summary of the entire document using the given context"
@@ -74,7 +70,6 @@ async def ask_question(request: AskRequest):
                 "refused": True
             }
         
-        # Format context
         context = ""
         for chunk in chunks:
             context += f"[Page {chunk['page']}]: {chunk['text']}\n\n"
@@ -88,15 +83,12 @@ async def ask_question(request: AskRequest):
                 "refused": True
             }
         
-        # Get answer from Groq
         answer = groq.ask(context, query_to_use, [])
         
         print(f"Groq response: {answer}")
         
-        # Extract citations from answer text like [Page X]
         citations = list(set(re.findall(r"\[Page (\d+)\]", answer)))
         
-        # Check if Groq explicitly refused or no citations found
         is_refused = (
             "I could not find this" in answer or 
             "outside the scope" in answer or 
